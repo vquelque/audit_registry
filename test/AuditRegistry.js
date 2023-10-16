@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("Registry contract", function () {
-  beforeEach(async function() {
+  beforeEach(async function () {
     this.testToken = "0xae78736Cd615f374D3085123A210448E74Fc6393";
     this.zeroAddress = "0x0000000000000000000000000000000000000000";
     this.expectedHash = "0xe34255314ec42825a6444800e6894665b8c74e84e9dd2f20866f7057812b3adf";
@@ -19,7 +19,7 @@ describe("Registry contract", function () {
 
   it("does not have any artifacts for new addresses", async function () {
     const artifacts = await this.registry.getArtifacts(this.testToken);
-    expect(artifacts).to.be.an( "array" ).that.is.empty;
+    expect(artifacts).to.be.an("array").that.is.empty;
   });
 
   it("successfully adds a new artifact on valid params", async function () {
@@ -35,7 +35,7 @@ describe("Registry contract", function () {
     expect(artifacts[0].owner).to.be.equals(owner.address);
     expect(artifacts[0].codeHash).to.be.equals(this.expectedHash);
     expect(artifacts[0].link).to.be.equals(this.validReportLink);
-    expect(artifacts[0].related).to.be.an( "array" ).that.is.empty;
+    expect(artifacts[0].related).to.be.an("array").that.is.empty;
   });
 
   it("successfully removes a new artifact", async function () {
@@ -53,24 +53,24 @@ describe("Registry contract", function () {
     expect(removeReceipt.events[0].event).to.be.equals("Removed");
 
     const artifacts = await this.registry.getArtifacts(this.testToken);
-    expect(artifacts).to.be.an( "array" ).that.is.empty;
+    expect(artifacts).to.be.an("array").that.is.empty;
   });
 
-  it("reverts on an invalid report link", async function() {
+  it("reverts on an invalid report link", async function () {
     [owner] = await ethers.getSigners();
 
     const addTx = this.registry.connect(owner).add(this.testToken, this.invalidReportLink, []);
     await expect(addTx).to.be.revertedWith("Invalid report link prefix");
   });
 
-  it("reverts when address has no code", async function() {
+  it("reverts when address has no code", async function () {
     [owner] = await ethers.getSigners();
 
     const addTx = this.registry.connect(owner).add(this.zeroAddress, this.validReportLink, []);
     await expect(addTx).to.be.revertedWith("No code at target address");
   });
 
-  it("reverts when index is invalid", async function() {
+  it("reverts when index is invalid", async function () {
     [owner, addr2] = await ethers.getSigners();
 
     const addTx = await this.registry.connect(owner).add(this.testToken, this.validReportLink, []);
@@ -80,7 +80,7 @@ describe("Registry contract", function () {
     await expect(removeTx).to.be.revertedWith("Invalid artifact index");
   });
 
-  it("reverts when sender not authorized", async function() {
+  it("reverts when sender not authorized", async function () {
     [owner, addr2] = await ethers.getSigners();
 
     const addTx = await this.registry.connect(owner).add(this.testToken, this.validReportLink, []);
