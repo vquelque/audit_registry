@@ -55,9 +55,9 @@ contract AuditRegistry {
     }
 
     function add(address target, string calldata reportLink, address[] calldata related) public {
-        require(startsWith("https://", reportLink) || startsWith("ipfs://", reportLink));
+        require(startsWith("https://", reportLink) || startsWith("ipfs://", reportLink), "Invalid report link prefix");
         bytes32 code = getCodeHash(target);
-        require(code != EMPTY_HASH);
+        require(code != EMPTY_HASH, "No code at target address");
 
         Artifact memory a = Artifact({
             owner: msg.sender,
@@ -72,10 +72,10 @@ contract AuditRegistry {
 
     function remove(address target, uint256 index) public {
         Artifact[] storage artifactList = registry[target];
-        require(index < artifactList.length);
+        require(index < artifactList.length, "Invalid artifact index");
 
         Artifact memory a = artifactList[index];
-        require(a.owner == msg.sender);
+        require(a.owner == msg.sender, "Unauthorized action on artifact");
 
         // Move last element to deleted spot
         artifactList[index] = artifactList[artifactList.length - 1];
