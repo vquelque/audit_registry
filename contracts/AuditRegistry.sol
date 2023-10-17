@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 struct Artifact {
     address owner;
     bytes32 codeHash;
+    uint256 chainid;
     string link;
     address[] related;
 }
@@ -78,6 +79,7 @@ contract AuditRegistry {
         Artifact memory a = Artifact({
             owner: msg.sender,
             codeHash: code,
+            chainid: block.chainid,
             link: reportLink,
             related: related
         });

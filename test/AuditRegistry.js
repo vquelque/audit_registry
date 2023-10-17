@@ -6,6 +6,7 @@ describe("Registry contract", function () {
     this.testToken = "0xae78736Cd615f374D3085123A210448E74Fc6393";
     this.zeroAddress = "0x0000000000000000000000000000000000000000";
     this.expectedHash = "0xe34255314ec42825a6444800e6894665b8c74e84e9dd2f20866f7057812b3adf";
+    this.expectedChainId = 31337;
     this.validReportLink = "https://example.com/report.pdf";
     this.invalidReportLink = "invalid://foo";
 
@@ -34,6 +35,7 @@ describe("Registry contract", function () {
     expect(artifacts).to.have.length.of(1);
     expect(artifacts[0].owner).to.be.equals(owner.address);
     expect(artifacts[0].codeHash).to.be.equals(this.expectedHash);
+    expect(artifacts[0].chainid).to.be.equals(this.expectedChainId);
     expect(artifacts[0].link).to.be.equals(this.validReportLink);
     expect(artifacts[0].related).to.be.an("array").that.is.empty;
   });
