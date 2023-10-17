@@ -1,4 +1,5 @@
 <template>
+  <ConnectWalletPopup :showAlert="showWalletPopup" @showAlert="closeWalletPopup"></ConnectWalletPopup>
   <div class="flex h-full items-center justify-center">
     <div class="max-w-4xl w-full space-y-1">
       <form @submit.prevent="submit()">
@@ -53,15 +54,28 @@
 import { ref } from "vue";
 import router from "../router/index";
 import { isValidAddress } from "@/utils/utils";
+import { store } from "@/store";
+import ConnectWalletPopup from "@/components/ConnectWalletPopup.vue";
 
 const address = ref("");
 const errorMessage = ref("");
+const showWalletPopup = ref(false)
+
+const closeWalletPopup = (e) => {
+  showWalletPopup.value = false
+}
 
 const submit = () => {
   if (!isValidAddress(address.value)) {
     errorMessage.value = "This is not a valid smart-contract address";
     return;
   }
+
+  if (!store.address) {
+    showWalletPopup.value = true;
+    return;
+  }
+
   router.push({ name: "contract", params: { address: address.value } });
 };
 </script>

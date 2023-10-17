@@ -10,9 +10,7 @@ import {
   watchAccount,
 } from "@wagmi/core";
 import { publicProvider } from "@wagmi/core/providers/public";
-import { ref } from "vue";
-
-const address = ref("");
+import { store } from "@/store"
 
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   [mainnet],
@@ -22,7 +20,7 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
 const injectedConnector = new InjectedConnector();
 
 const config = createConfig({
-  autoConnect: false,
+  autoConnect: true,
   publicClient,
   webSocketPublicClient,
   connectors: [injectedConnector],
@@ -34,7 +32,7 @@ const connectWallet = async () => {
       chainId: SEPOLIA_CHAIN_ID,
       connector: injectedConnector,
     });
-    address.value = account;
+    store.address = account;
     console.log(`Wallet ${account} connected`);
     await switchNetwork({
       chainId: SEPOLIA_CHAIN_ID,
@@ -47,14 +45,17 @@ const connectWallet = async () => {
 watchAccount((account) => {
   if (account.isDisconnected == true && !account.isReconnecting) {
     console.log(`Account is disconnected`);
-    address.value = "";
+    store.address = "";
+  }
+  if (account.isConnected) {
+    store.address = account.address;
   }
 });
 </script>
 
 <template>
   <button
-    v-if="!address"
+    v-if="!store.address"
     type="button"
     @click="connectWallet"
     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
@@ -66,6 +67,6 @@ watchAccount((account) => {
     type="button"
     class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full"
   >
-    {{ address }}
+    {{ store.address }}
   </button>
 </template>
