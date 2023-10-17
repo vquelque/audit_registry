@@ -9,6 +9,7 @@ describe("Registry contract", function () {
     this.expectedChainId = 31337;
     this.validReportLink = "https://example.com/report.pdf";
     this.invalidReportLink = "invalid://foo";
+    this.expectedCompany = "Audit Company Ltd."
 
     this.registry = await ethers.deployContract("AuditRegistry");
   });
@@ -25,7 +26,7 @@ describe("Registry contract", function () {
 
   it("successfully adds a new artifact on valid params", async function () {
     [owner] = await ethers.getSigners();
-    const tx = await this.registry.connect(owner).add(this.testToken, this.validReportLink, []);
+    const tx = await this.registry.connect(owner).add(this.testToken, this.validReportLink, this.expectedCompany, []);
     const receipt = await tx.wait();
 
     expect(receipt.events).to.have.length.of(1);
@@ -37,12 +38,13 @@ describe("Registry contract", function () {
     expect(artifacts[0].codeHash).to.be.equals(this.expectedHash);
     expect(artifacts[0].chainid).to.be.equals(this.expectedChainId);
     expect(artifacts[0].link).to.be.equals(this.validReportLink);
+    expect(artifacts[0].company).to.be.equals(this.expectedCompany);
     expect(artifacts[0].related).to.be.an("array").that.is.empty;
   });
 
   it("successfully removes a new artifact", async function () {
     [owner] = await ethers.getSigners();
-    const addTx = await this.registry.connect(owner).add(this.testToken, this.validReportLink, []);
+    const addTx = await this.registry.connect(owner).add(this.testToken, this.validReportLink, this.expectedCompany, []);
     const addReceipt = await addTx.wait();
 
     expect(addReceipt.events).to.have.length.of(1);
@@ -61,21 +63,21 @@ describe("Registry contract", function () {
   it("reverts on an invalid report link", async function () {
     [owner] = await ethers.getSigners();
 
-    const addTx = this.registry.connect(owner).add(this.testToken, this.invalidReportLink, []);
+    const addTx = this.registry.connect(owner).add(this.testToken, this.invalidReportLink, this.expectedCompany, []);
     await expect(addTx).to.be.revertedWith("Invalid report link prefix");
   });
 
   it("reverts when address has no code", async function () {
     [owner] = await ethers.getSigners();
 
-    const addTx = this.registry.connect(owner).add(this.zeroAddress, this.validReportLink, []);
+    const addTx = this.registry.connect(owner).add(this.zeroAddress, this.validReportLink, this.expectedCompany, []);
     await expect(addTx).to.be.revertedWith("No code at target address");
   });
 
   it("reverts when index is invalid", async function () {
     [owner, addr2] = await ethers.getSigners();
 
-    const addTx = await this.registry.connect(owner).add(this.testToken, this.validReportLink, []);
+    const addTx = await this.registry.connect(owner).add(this.testToken, this.validReportLink, this.expectedCompany, []);
     await addTx.wait();
 
     const removeTx = this.registry.connect(addr2).remove(this.testToken, 1);
@@ -85,7 +87,7 @@ describe("Registry contract", function () {
   it("reverts when sender not authorized", async function () {
     [owner, addr2] = await ethers.getSigners();
 
-    const addTx = await this.registry.connect(owner).add(this.testToken, this.validReportLink, []);
+    const addTx = await this.registry.connect(owner).add(this.testToken, this.validReportLink, this.expectedCompany, []);
     await addTx.wait();
 
     const removeTx = this.registry.connect(addr2).remove(this.testToken, 0);

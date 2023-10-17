@@ -6,6 +6,7 @@ struct Artifact {
     bytes32 codeHash;
     uint256 chainid;
     string link;
+    string company;
     address[] related;
 }
 
@@ -66,6 +67,7 @@ contract AuditRegistry {
     function add(
         address target,
         string calldata reportLink,
+        string calldata company,
         address[] calldata related
     ) public {
         require(
@@ -81,6 +83,7 @@ contract AuditRegistry {
             codeHash: code,
             chainid: block.chainid,
             link: reportLink,
+            company: company,
             related: related
         });
         registry[target].push(a);
