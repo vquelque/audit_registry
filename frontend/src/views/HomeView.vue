@@ -1,5 +1,8 @@
 <template>
-  <ConnectWalletPopup :showAlert="showWalletPopup" @showAlert="closeWalletPopup"></ConnectWalletPopup>
+  <ConnectWalletPopup
+    :showAlert="showWalletPopup"
+    @showAlert="closeWalletPopup"
+  ></ConnectWalletPopup>
   <div class="flex h-full items-center justify-center">
     <div class="max-w-4xl w-full space-y-1">
       <form @submit.prevent="submit()">
@@ -9,7 +12,6 @@
               id="contract-address"
               name="contract-address"
               type="text"
-              autocomplete="contract-address"
               required
               class="appearance-none rounded-l-md relative block w-full px-3 py-4 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               placeholder="Input smart-contract address"
@@ -51,23 +53,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import router from "../router/index";
-import { isValidAddress } from "@/utils/utils";
-import { store } from "@/store";
-import ConnectWalletPopup from "@/components/ConnectWalletPopup.vue";
+import { ref } from 'vue';
+import router from '../router/index';
+import { isValidAddress } from '@/utils/utils';
+import { store } from '@/store';
+import ConnectWalletPopup from '@/components/ConnectWalletPopup.vue';
 
-const address = ref("");
-const errorMessage = ref("");
-const showWalletPopup = ref(false)
+const address = ref('');
+const errorMessage = ref('');
+const showWalletPopup = ref(false);
 
 const closeWalletPopup = (e) => {
-  showWalletPopup.value = false
-}
+  showWalletPopup.value = false;
+};
 
 const submit = () => {
   if (!isValidAddress(address.value)) {
-    errorMessage.value = "This is not a valid smart-contract address";
+    errorMessage.value = 'This is not a valid smart-contract address';
     return;
   }
 
@@ -76,6 +78,6 @@ const submit = () => {
     return;
   }
 
-  router.push({ name: "contract", params: { address: address.value } });
+  router.push({ name: 'contract', params: { address: address.value } });
 };
 </script>
