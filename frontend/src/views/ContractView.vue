@@ -130,6 +130,7 @@
             <a
               :href="selectedAudit.link"
               class="text-indigo-600 hover:text-indigo-900"
+              target="_blank"
               >View Audit</a
             >
           </div>
