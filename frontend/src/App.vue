@@ -5,8 +5,8 @@ import "./style.css";
 </script>
 
 <template>
-  <div class="h-screen bg-gray-50 overflow-hidden flex flex-col">
-    <header class="absolute top-10 left-0 w-full px-4 sm:px-6 lg:px-12">
+  <div class="h-screen bg-gray-50 overflow-auto flex flex-col">
+    <header class="absolute py-3 sm:py-6 left-0 w-full px-4 sm:px-6 lg:px-12 bg-gray-50 z-">
       <nav class="flex items-center justify-between">
         <div>
           <RouterLink to="/"
@@ -25,7 +25,7 @@ import "./style.css";
       </nav>
     </header>
 
-    <div class="flex-grow overflow-hidden">
+    <div class="flex-grow overflow-auto">
       <RouterView />
     </div>
   </div>
