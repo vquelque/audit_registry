@@ -109,9 +109,10 @@
                   <input
                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                     :id="'related' + index"
+                    :name="'related' + index"
                     v-model="related.address"
                     type="text"
-                    required
+                    :required="isFieldFilled(index)"
                     pattern="^0x[a-fA-F0-9]{40}$"
                     title="Related address must be a valid Ethereum address"
                   />
@@ -126,9 +127,10 @@
                   <input
                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                     :id="'codeHash' + index"
+                    :name="'codeHash' + index"
                     v-model="related.codeHash"
                     type="text"
-                    required
+                    :required="isFieldFilled(index)"
                     pattern="^0x[a-fA-F0-9]{64}$"
                     title="Code hash must start with '0x' and be 66 characters long"
                   />
@@ -153,22 +155,47 @@
             </button>
           </div>
 
-          <div class="flex items-center justify-center">
-            <button
-              class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              type="submit"
+          <div class="flex flex-col space-y-3">
+            <div class="flex items-center justify-center">
+              <button
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded focus:outline-none focus:shadow-outline"
+                type="submit"
+              >
+                Submit
+              </button>
+            </div>
+            <div
+              class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"
+              role="alert"
+              v-if="errorMessage"
             >
-              Submit
-            </button>
+              <strong class="font-bold">Wait! </strong>
+              <span class="block sm:inline">{{ errorMessage }}</span>
+            </div>
           </div>
         </form>
       </div>
     </div>
   </div>
+  <ConnectWalletPopup
+    :showAlert="showWalletPopup"
+    @showAlert="closeWalletPopup"
+  ></ConnectWalletPopup>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, Ref } from 'vue';
+import { store } from '@/store';
+import { SUPPORTED_NETWORKS } from '@/constants';
+import ConnectWalletPopup from '@/components/ConnectWalletPopup.vue';
+import { hasDuplicateInArray } from '@/utils/utils';
+
+const showWalletPopup = ref(false);
+const errorMessage = ref('');
+
+const closeWalletPopup = (e) => {
+  showWalletPopup.value = false;
+};
 
 const form = ref({
   address: '',
@@ -179,6 +206,11 @@ const form = ref({
   related: [{ address: '', codeHash: '' }],
 });
 
+const isFieldFilled = (index) => {
+  let related = form.value.related[index];
+  return !!(related && (related.address || related.codeHash));
+};
+
 const addRelated = () => {
   form.value.related.push({ address: '', codeHash: '' });
 };
@@ -187,8 +219,47 @@ const removeRelated = (index) => {
   form.value.related.splice(index, 1);
 };
 
+const sanitizeRelated = (
+  form: Ref<{
+    address: string;
+    codeHash: string;
+    chainid: string;
+    link: string;
+    company: string;
+    related: {
+      address: string;
+      codeHash: string;
+    }[];
+  }>
+) => {
+  const addresses = form.value.related.map((related) => related.address);
+  addresses.push(form.value.address);
+  const codeHashes = form.value.related.map((related) => related.codeHash);
+  codeHashes.push(form.value.codeHash);
+
+  return !hasDuplicateInArray(addresses) && !hasDuplicateInArray(codeHashes);
+};
+
 const submit = () => {
+  if (!store.address) {
+    showWalletPopup.value = true;
+    return;
+  }
+  if (SUPPORTED_NETWORKS.indexOf(store.chainId) < 0) {
+    //network is not supported
+    showWalletPopup.value = true;
+    return;
+  }
+
   console.log(form);
-  //send form to audit contract
+
+  if (!sanitizeRelated(form)) {
+    errorMessage.value =
+      'There are duplicate entries (codehash/address) in the related addresses, or it overlaps with the main contract codehash/address. Please check your input.';
+    return;
+  }
+  //success
+  errorMessage.value = '';
+  console.log(form);
 };
 </script>

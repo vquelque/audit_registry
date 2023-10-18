@@ -8,6 +8,7 @@ import {
   connect,
   switchNetwork,
   watchAccount,
+  watchNetwork
 } from "@wagmi/core";
 import { publicProvider } from "@wagmi/core/providers/public";
 import { store } from "@/store"
@@ -51,6 +52,10 @@ watchAccount((account) => {
     store.address = account.address;
   }
 });
+
+watchNetwork((network) => {
+  store.chainId = network.chain.id
+})
 </script>
 
 <template>
