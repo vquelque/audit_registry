@@ -4,7 +4,7 @@ require("solidity-coverage");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  defaultNetwork: "localhost",
+  defaultNetwork: "sepolia",
   networks: {
     hardhat: {},
     sepolia: {
