@@ -6,6 +6,7 @@ struct Artifact {
     bytes32 codeHash;
     uint256 chainid;
     string link;
+    string name;
     string company;
     address[] related;
 }
@@ -13,6 +14,8 @@ struct Artifact {
 contract AuditRegistry {
     bytes32 constant EMPTY_HASH =
         0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
+    bytes32 constant ZERO_HASH =
+        0x0000000000000000000000000000000000000000000000000000000000000000;
 
     mapping(address => Artifact[]) public registry;
 
@@ -68,6 +71,8 @@ contract AuditRegistry {
         address target,
         string calldata reportLink,
         string calldata company,
+        string calldata name,
+        bytes32 code,
         address[] calldata related
     ) public {
         require(
@@ -75,7 +80,9 @@ contract AuditRegistry {
                 startsWith("ipfs://", reportLink),
             "Invalid report link prefix"
         );
-        bytes32 code = getCodeHash(target);
+        if (code == ZERO_HASH) {
+            code = getCodeHash(target);
+        }
         require(code != EMPTY_HASH, "No code at target address");
 
         Artifact memory a = Artifact({
@@ -83,6 +90,7 @@ contract AuditRegistry {
             codeHash: code,
             chainid: block.chainid,
             link: reportLink,
+            name: name,
             company: company,
             related: related
         });

@@ -13,7 +13,7 @@ async function main() {
   await registry.deployed();
 
   console.log(
-    `Registry deployed to ${lock.address}`
+    `Registry deployed to ${registry.address}`
   );
 }
 
