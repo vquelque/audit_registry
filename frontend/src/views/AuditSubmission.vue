@@ -184,18 +184,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref } from 'vue';
-import { store } from '@/store';
+import { ref, Ref } from "vue";
+import { store } from "@/store";
 import {
   REGISTRY_ADDRESS,
   SEPOLIA_CHAIN_ID,
   SUPPORTED_NETWORKS,
-} from '@/constants';
-import ConnectWalletPopup from '@/components/ConnectWalletPopup.vue';
-import { hasDuplicateInArray } from '@/utils/utils';
-import { REGISTRY_ABI } from '@/abi/AuditRegistry';
-import { waitForTransaction, writeContract } from '@wagmi/core';
-import { parseEther } from 'viem';
+} from "@/constants";
+import ConnectWalletPopup from "@/components/ConnectWalletPopup.vue";
+import { hasDuplicateInArray } from "@/utils/utils";
+import { REGISTRY_ABI } from "@/abi/AuditRegistry";
+import { waitForTransaction, writeContract } from "@wagmi/core";
+import { parseEther } from "viem";
 
 const registryContract = {
   address: REGISTRY_ADDRESS,
@@ -203,19 +203,19 @@ const registryContract = {
 } as const;
 
 const showWalletPopup = ref(false);
-const errorMessage = ref('');
+const errorMessage = ref("");
 
 const closeWalletPopup = (e) => {
   showWalletPopup.value = false;
 };
 
 const form = ref({
-  address: '',
-  codeHash: '',
-  chainid: '',
-  link: '',
-  company: '',
-  related: [{ address: '', codeHash: '' }],
+  address: "",
+  codeHash: "",
+  chainid: "",
+  link: "",
+  company: "",
+  related: [{ address: "", codeHash: "" }],
 });
 
 const isFieldFilled = (index) => {
@@ -224,7 +224,7 @@ const isFieldFilled = (index) => {
 };
 
 const addRelated = () => {
-  form.value.related.push({ address: '', codeHash: '' });
+  form.value.related.push({ address: "", codeHash: "" });
 };
 
 const removeRelated = (index) => {
@@ -242,7 +242,7 @@ const sanitizeRelated = (
       address: string;
       codeHash: string;
     }[];
-  }>
+  }>,
 ) => {
   const addresses = form.value.related.map((related) => related.address);
   addresses.push(form.value.address);
@@ -262,21 +262,24 @@ const sendToContract = async (form) => {
   try {
     const receipt = await writeContract({
       ...registryContract,
-      functionName: 'add',
+      functionName: "add",
       chainId: SEPOLIA_CHAIN_ID,
       //value: parseEther("0.1"),
       args: [form.value.address, form.value.link, form.value.company, related],
     });
-    ++store.pendingTransactions
-    waitForTransaction({hash: receipt.hash}).then((_) => --store.pendingTransactions)
+    ++store.pendingTransactions;
+    waitForTransaction({ hash: receipt.hash }).then(
+      (_) => --store.pendingTransactions,
+    );
     console.log(`form submitted. tx hash: ${receipt.hash}`);
   } catch (error) {
-    console.log('error while submitting tx to contract');
+    console.log("error while submitting tx to contract");
     console.log(error);
     if (error.shortMessage) {
-        errorMessage.value = error.shortMessage
+      errorMessage.value = error.shortMessage;
     } else {
-        errorMessage.value = "An unknown error happened while sending the transcation to the registry contract."
+      errorMessage.value =
+        "An unknown error happened while sending the transcation to the registry contract.";
     }
   }
 };
@@ -294,11 +297,11 @@ const submit = async () => {
 
   if (!sanitizeRelated(form)) {
     errorMessage.value =
-      'There are duplicate entries (codehash/address) in the related addresses, or it overlaps with the main contract codehash/address. Please check your input.';
+      "There are duplicate entries (codehash/address) in the related addresses, or it overlaps with the main contract codehash/address. Please check your input.";
     return;
   }
   //success
-  errorMessage.value = '';
+  errorMessage.value = "";
   console.log(form.value);
   sendToContract(form);
 };

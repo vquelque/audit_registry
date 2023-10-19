@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from "vue-router";
 import WalletConnectBtn from "@/components/WalletConnectBtn.vue";
-import PendingTransaction from "@/components/PendingTransaction.vue"
+import PendingTransaction from "@/components/PendingTransaction.vue";
 import "./style.css";
 </script>
 
