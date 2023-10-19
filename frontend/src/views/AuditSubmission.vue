@@ -186,10 +186,21 @@
 <script setup lang="ts">
 import { ref, Ref } from "vue";
 import { store } from "@/store";
-import { SUPPORTED_NETWORKS } from "@/constants";
+import {
+  REGISTRY_ADDRESS,
+  SEPOLIA_CHAIN_ID,
+  SUPPORTED_NETWORKS,
+} from "@/constants";
 import ConnectWalletPopup from "@/components/ConnectWalletPopup.vue";
 import { hasDuplicateInArray } from "@/utils/utils";
-import { readContracts } from "@wagmi/core";
+import { REGISTRY_ABI } from "@/abi/AuditRegistry";
+import { writeContract } from "@wagmi/core";
+import { parseEther } from "viem";
+
+const registryContract = {
+  address: REGISTRY_ADDRESS,
+  abi: REGISTRY_ABI,
+} as const;
 
 const showWalletPopup = ref(false);
 const errorMessage = ref("");
@@ -241,7 +252,24 @@ const sanitizeRelated = (
   return !hasDuplicateInArray(addresses) && !hasDuplicateInArray(codeHashes);
 };
 
-const submit = () => {
+const sendToContract = async (form) => {
+  if (!form.value.address || !form.value.link || !form.value.company) {
+    console.log(`missing fields to submit form to blockchain`);
+    return;
+  }
+  const related = form.value.related.map((r) => r.address).filter((r) => r);
+  console.log(related);
+  const hash = await writeContract({
+    ...registryContract,
+    functionName: "add",
+    chainId: SEPOLIA_CHAIN_ID,
+    value: parseEther("0.1"),
+    args: [form.value.address, form.value.link, form.value.company, related],
+  });
+  console.log(`form submitted. tx hash: ${hash}`);
+};
+
+const submit = async () => {
   if (!store.address) {
     showWalletPopup.value = true;
     return;
@@ -252,8 +280,6 @@ const submit = () => {
     return;
   }
 
-  console.log(form);
-
   if (!sanitizeRelated(form)) {
     errorMessage.value =
       "There are duplicate entries (codehash/address) in the related addresses, or it overlaps with the main contract codehash/address. Please check your input.";
@@ -261,6 +287,7 @@ const submit = () => {
   }
   //success
   errorMessage.value = "";
-  console.log(form);
+  console.log(form.value);
+  sendToContract(form);
 };
 </script>

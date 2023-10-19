@@ -87,12 +87,6 @@
               <p class="mt-1 max-w-2xl text-sm text-gray-500">
                 {{ audit.date }}
               </p>
-              <p class="mt-1 max-w-2xl text-sm text-gray-500">
-                Codehash:
-                <span class="font-mono font-extralight">{{
-                  audit.contractHash
-                }}</span>
-              </p>
             </div>
           </div>
         </div>
@@ -116,7 +110,7 @@
               Date: {{ selectedAudit.date }}
             </p>
             <p class="mt-1 max-w-2xl text-sm text-gray-500">
-              Contract Hash: {{ selectedAudit.contractHash }}
+              Contract CodeHash: {{ selectedAudit.codeHash }}
             </p>
             <div class="mt-1 max-w-2xl text-sm text-gray-500">
               <p>Associated Addresses:</p>
@@ -150,7 +144,7 @@
 <script setup lang="ts">
 import { ref, onMounted, Ref } from "vue";
 import { useRoute } from "vue-router";
-import { readContracts, ReadContractsResult } from "@wagmi/core";
+import { readContracts } from "@wagmi/core";
 import { REGISTRY_ADDRESS } from "@/constants";
 import { REGISTRY_ABI } from "@/abi/AuditRegistry";
 
@@ -170,14 +164,32 @@ type Artifact = {
   related: string[];
 };
 
+interface AuditEntry {
+  id: number;
+  name: string;
+  link: string;
+  company: string;
+  date: Date;
+  contractHash: string;
+  associatedAddresses: Array<string>;
+  isValid: boolean;
+}
+
 const registryContract = {
   address: REGISTRY_ADDRESS,
   abi: REGISTRY_ABI,
 } as const;
 
-const setRef = (data: any, r: Ref<any>) => {
+const setRef = (
+  data: any,
+  r: Ref<any>,
+  processData?: (...args: any[]) => any,
+  ...processDataArgs: any[]
+) => {
   if (data && data.status == "success") {
-    r.value = data.result;
+    r.value = processData
+      ? processData(data.result, ...processDataArgs)
+      : data.result;
   } else {
     r.value = "";
     console.log("Failed to fetch data from RPC");
@@ -189,6 +201,19 @@ const setRef = (data: any, r: Ref<any>) => {
 
 const checkValidAudit = (audits: Artifact[], codehash: string) =>
   audits.some((a) => a.codeHash == codehash);
+
+const processAudits = (audits: Artifact[], codehash: string) => {
+  return audits.map<AuditEntry>((a, idx) => ({
+    id: idx,
+    name: "Audit",
+    link: a.link,
+    company: a.company,
+    date: new Date().toLocaleDateString(),
+    codeHash: a.codeHash,
+    associatedAddresses: a.related,
+    isValid: a.codeHash == codehash,
+  }));
+};
 
 const fetchData = async () => {
   if (!contractAddress.value) {
@@ -209,7 +234,8 @@ const fetchData = async () => {
     ],
   });
   setRef(data[0], codehash);
-  setRef(data[1], audits);
+  setRef(data[1], audits, processAudits, codehash.value);
+  console.log(data[1]);
 
   validAudit.value = checkValidAudit(audits.value, codehash.value);
 };
