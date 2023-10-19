@@ -83,7 +83,7 @@ contract AuditRegistry {
         if (code == ZERO_HASH) {
             code = getCodeHash(target);
         }
-        require(code != EMPTY_HASH, "No code at target address");
+        require(code != EMPTY_HASH && code != ZERO_HASH, "No code at target address");
 
         Artifact memory a = Artifact({
             owner: msg.sender,
