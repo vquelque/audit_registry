@@ -32,7 +32,8 @@
               </h3>
               <div class="mt-2">
                 <p class="text-sm text-gray-500">
-                  Please connect your web3 wallet to the SEPOLIA network before submitting the form.
+                  Please connect your web3 wallet to the SEPOLIA network before
+                  submitting the form.
                 </p>
               </div>
             </div>
@@ -53,15 +54,15 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from 'vue';
+import { defineProps } from "vue";
 
 const props = defineProps({
   showAlert: Boolean,
 });
 
-const emit = defineEmits(['showAlert']);
+const emit = defineEmits(["showAlert"]);
 
 const closeAlert = () => {
-  emit('showAlert', false);
+  emit("showAlert", false);
 };
 </script>

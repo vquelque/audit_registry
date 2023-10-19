@@ -184,26 +184,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref } from 'vue';
-import { store } from '@/store';
-import { SUPPORTED_NETWORKS } from '@/constants';
-import ConnectWalletPopup from '@/components/ConnectWalletPopup.vue';
-import { hasDuplicateInArray } from '@/utils/utils';
+import { ref, Ref } from "vue";
+import { store } from "@/store";
+import { SUPPORTED_NETWORKS } from "@/constants";
+import ConnectWalletPopup from "@/components/ConnectWalletPopup.vue";
+import { hasDuplicateInArray } from "@/utils/utils";
+import { readContracts } from "@wagmi/core";
 
 const showWalletPopup = ref(false);
-const errorMessage = ref('');
+const errorMessage = ref("");
 
 const closeWalletPopup = (e) => {
   showWalletPopup.value = false;
 };
 
 const form = ref({
-  address: '',
-  codeHash: '',
-  chainid: '',
-  link: '',
-  company: '',
-  related: [{ address: '', codeHash: '' }],
+  address: "",
+  codeHash: "",
+  chainid: "",
+  link: "",
+  company: "",
+  related: [{ address: "", codeHash: "" }],
 });
 
 const isFieldFilled = (index) => {
@@ -212,7 +213,7 @@ const isFieldFilled = (index) => {
 };
 
 const addRelated = () => {
-  form.value.related.push({ address: '', codeHash: '' });
+  form.value.related.push({ address: "", codeHash: "" });
 };
 
 const removeRelated = (index) => {
@@ -230,7 +231,7 @@ const sanitizeRelated = (
       address: string;
       codeHash: string;
     }[];
-  }>
+  }>,
 ) => {
   const addresses = form.value.related.map((related) => related.address);
   addresses.push(form.value.address);
@@ -255,11 +256,11 @@ const submit = () => {
 
   if (!sanitizeRelated(form)) {
     errorMessage.value =
-      'There are duplicate entries (codehash/address) in the related addresses, or it overlaps with the main contract codehash/address. Please check your input.';
+      "There are duplicate entries (codehash/address) in the related addresses, or it overlaps with the main contract codehash/address. Please check your input.";
     return;
   }
   //success
-  errorMessage.value = '';
+  errorMessage.value = "";
   console.log(form);
 };
 </script>

@@ -1,24 +1,25 @@
 <script setup lang="ts">
-import { SEPOLIA_CHAIN_ID } from "@/constants";
+import { SEPOLIA_CHAIN_ID, INFURA_KEY } from "@/constants";
 import { InjectedConnector } from "@wagmi/core/connectors/injected";
 import {
   configureChains,
-  mainnet,
   createConfig,
   connect,
   switchNetwork,
   watchAccount,
-  watchNetwork
+  watchNetwork,
+  sepolia,
 } from "@wagmi/core";
+import { infuraProvider } from "@wagmi/core/providers/infura";
 import { publicProvider } from "@wagmi/core/providers/public";
-import { store } from "@/store"
-
-const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [mainnet],
-  [publicProvider()],
-);
+import { store } from "@/store";
 
 const injectedConnector = new InjectedConnector();
+
+const { chains, publicClient, webSocketPublicClient } = configureChains(
+  [sepolia],
+  [infuraProvider({ apiKey: INFURA_KEY }), publicProvider()],
+);
 
 const config = createConfig({
   autoConnect: true,
@@ -54,8 +55,8 @@ watchAccount((account) => {
 });
 
 watchNetwork((network) => {
-  store.chainId = network.chain.id
-})
+  store.chainId = network.chain.id;
+});
 </script>
 
 <template>

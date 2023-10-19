@@ -12,7 +12,7 @@
             {{ codehash }}
           </p>
         </h1>
-        <div v-if="true" class="flex items-center text-green-500">
+        <div v-if="validAudit" class="flex items-center text-green-500">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -78,7 +78,7 @@
                   "
                   class="px-2 py-1 font-semibold leading-tight text-sm rounded-full"
                 >
-                  {{ audit.isValid ? 'OK' : 'NOK' }}
+                  {{ audit.isValid ? "OK" : "NOK" }}
                 </span>
               </div>
               <p class="mt-1 max-w-2xl text-sm text-gray-600">
@@ -148,111 +148,169 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted, Ref } from "vue";
+import { useRoute } from "vue-router";
+import { readContracts, ReadContractsResult } from "@wagmi/core";
+import { REGISTRY_ADDRESS } from "@/constants";
+import { REGISTRY_ABI } from "@/abi/AuditRegistry";
 
 const route = useRoute();
 const selectedAudit = ref();
 const contractAddress = ref();
-const codehash = ref('0x73472647374279843283879');
+const codehash = ref();
+const audits = ref();
+const validAudit = ref();
+
+type Artifact = {
+  owner: string;
+  codeHash: string;
+  chainid: number;
+  link: string;
+  company: string;
+  related: string[];
+};
+
+const registryContract = {
+  address: REGISTRY_ADDRESS,
+  abi: REGISTRY_ABI,
+} as const;
+
+const setRef = (data: any, r: Ref<any>) => {
+  if (data && data.status == "success") {
+    r.value = data.result;
+  } else {
+    r.value = "";
+    console.log("Failed to fetch data from RPC");
+    if (data.error) {
+      console.log(data.error);
+    }
+  }
+};
+
+const checkValidAudit = (audits: Artifact[], codehash: string) =>
+  audits.some((a) => a.codeHash == codehash);
+
+const fetchData = async () => {
+  if (!contractAddress.value) {
+    return;
+  }
+  const data = await readContracts({
+    contracts: [
+      {
+        ...registryContract,
+        functionName: "getCodeHash",
+        args: [contractAddress.value],
+      },
+      {
+        ...registryContract,
+        functionName: "getArtifacts",
+        args: [contractAddress.value],
+      },
+    ],
+  });
+  setRef(data[0], codehash);
+  setRef(data[1], audits);
+
+  validAudit.value = checkValidAudit(audits.value, codehash.value);
+};
 
 onMounted(() => {
   console.log(route.params);
   contractAddress.value = route.params.address;
-  //fetchAuditStatus();
+  fetchData();
 });
 
-const audits = ref([
+const auditsDummy = [
   // Replace this with your actual data
   {
     id: 1,
-    name: 'Audit 1',
-    link: 'https://example.com/audit-1',
-    company: 'Company 1',
-    date: '2022-01-01',
-    contractHash: '0x123',
-    associatedAddresses: ['0x123', '0x456'],
+    name: "Audit 1",
+    link: "https://example.com/audit-1",
+    company: "Company 1",
+    date: "2022-01-01",
+    contractHash: "0x123",
+    associatedAddresses: ["0x123", "0x456"],
     isValid: true,
   },
   {
     id: 2,
-    name: 'Audit 2',
-    link: 'https://example.com/audit-2',
-    company: 'Company 2',
-    date: '2022-01-02',
-    contractHash: '0x123',
-    associatedAddresses: ['0x124', '0x455'],
+    name: "Audit 2",
+    link: "https://example.com/audit-2",
+    company: "Company 2",
+    date: "2022-01-02",
+    contractHash: "0x123",
+    associatedAddresses: ["0x124", "0x455"],
     isValid: false,
   },
   {
     id: 1,
-    name: 'Audit 3',
-    link: 'https://example.com/audit-3',
-    company: 'Company 3',
-    date: '2022-01-03',
-    contractHash: '0x125',
-    associatedAddresses: ['0x12', '0x456'],
+    name: "Audit 3",
+    link: "https://example.com/audit-3",
+    company: "Company 3",
+    date: "2022-01-03",
+    contractHash: "0x125",
+    associatedAddresses: ["0x12", "0x456"],
     isValid: true,
   },
   {
     id: 1,
-    name: 'Audit 3',
-    link: 'https://example.com/audit-3',
-    company: 'Company 3',
-    date: '2022-01-03',
-    contractHash: '0x125',
-    associatedAddresses: ['0x12', '0x456'],
+    name: "Audit 3",
+    link: "https://example.com/audit-3",
+    company: "Company 3",
+    date: "2022-01-03",
+    contractHash: "0x125",
+    associatedAddresses: ["0x12", "0x456"],
     isValid: true,
   },
   {
     id: 1,
-    name: 'Audit 3',
-    link: 'https://example.com/audit-3',
-    company: 'Company 3',
-    date: '2022-01-03',
-    contractHash: '0x125',
-    associatedAddresses: ['0x12', '0x456'],
+    name: "Audit 3",
+    link: "https://example.com/audit-3",
+    company: "Company 3",
+    date: "2022-01-03",
+    contractHash: "0x125",
+    associatedAddresses: ["0x12", "0x456"],
     isValid: true,
   },
   {
     id: 1,
-    name: 'Audit 3',
-    link: 'https://example.com/audit-3',
-    company: 'Company 3',
-    date: '2022-01-03',
-    contractHash: '0x125',
-    associatedAddresses: ['0x12', '0x456'],
+    name: "Audit 3",
+    link: "https://example.com/audit-3",
+    company: "Company 3",
+    date: "2022-01-03",
+    contractHash: "0x125",
+    associatedAddresses: ["0x12", "0x456"],
     isValid: true,
   },
   {
     id: 1,
-    name: 'Audit 3',
-    link: 'https://example.com/audit-3',
-    company: 'Company 3',
-    date: '2022-01-03',
-    contractHash: '0x125',
-    associatedAddresses: ['0x12', '0x456'],
+    name: "Audit 3",
+    link: "https://example.com/audit-3",
+    company: "Company 3",
+    date: "2022-01-03",
+    contractHash: "0x125",
+    associatedAddresses: ["0x12", "0x456"],
     isValid: true,
   },
   {
     id: 1,
-    name: 'Audit 3',
-    link: 'https://example.com/audit-3',
-    company: 'Company 3',
-    date: '2022-01-03',
-    contractHash: '0x125',
-    associatedAddresses: ['0x12', '0x456'],
+    name: "Audit 3",
+    link: "https://example.com/audit-3",
+    company: "Company 3",
+    date: "2022-01-03",
+    contractHash: "0x125",
+    associatedAddresses: ["0x12", "0x456"],
     isValid: true,
   },
   {
     id: 1,
-    name: 'Audit 3',
-    link: 'https://example.com/audit-3',
-    company: 'Company 3',
-    date: '2022-01-03',
-    contractHash: '0x125',
-    associatedAddresses: ['0x12', '0x456'],
+    name: "Audit 3",
+    link: "https://example.com/audit-3",
+    company: "Company 3",
+    date: "2022-01-03",
+    contractHash: "0x125",
+    associatedAddresses: ["0x12", "0x456"],
     isValid: true,
   },
-]);
+];
 </script>
