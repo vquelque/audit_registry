@@ -56,6 +56,20 @@
             />
           </div>
           <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="name"
+              >Audit name</label
+            >
+            <input
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              id="name"
+              v-model="form.name"
+              type="text"
+              required
+              pattern="^[a-zA-Z0-9\s]+$"
+              title="Audit name name can only contain alphanumeric characters and spaces"
+            />
+          </div>
+          <div class="mb-4">
             <label
               class="block text-gray-700 text-sm font-bold mb-2"
               for="chainid"
@@ -184,18 +198,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref } from "vue";
-import { store } from "@/store";
+import { ref, Ref, toRaw } from 'vue';
+import { store } from '@/store';
 import {
   REGISTRY_ADDRESS,
   SEPOLIA_CHAIN_ID,
   SUPPORTED_NETWORKS,
-} from "@/constants";
-import ConnectWalletPopup from "@/components/ConnectWalletPopup.vue";
-import { hasDuplicateInArray } from "@/utils/utils";
-import { REGISTRY_ABI } from "@/abi/AuditRegistry";
-import { waitForTransaction, writeContract } from "@wagmi/core";
-import { parseEther } from "viem";
+} from '@/constants';
+import ConnectWalletPopup from '@/components/ConnectWalletPopup.vue';
+import { hasDuplicateInArray } from '@/utils/utils';
+import { REGISTRY_ABI } from '@/abi/AuditRegistry';
+import { waitForTransaction, multicall } from '@wagmi/core';
+import { parseEther } from 'viem';
 
 const registryContract = {
   address: REGISTRY_ADDRESS,
@@ -203,19 +217,20 @@ const registryContract = {
 } as const;
 
 const showWalletPopup = ref(false);
-const errorMessage = ref("");
+const errorMessage = ref('');
 
 const closeWalletPopup = (e) => {
   showWalletPopup.value = false;
 };
 
 const form = ref({
-  address: "",
-  codeHash: "",
-  chainid: "",
-  link: "",
-  company: "",
-  related: [{ address: "", codeHash: "" }],
+  address: '',
+  codeHash: '',
+  chainid: '',
+  link: '',
+  company: '',
+  name: '',
+  related: [{ address: '', codeHash: '' }],
 });
 
 const isFieldFilled = (index) => {
@@ -224,7 +239,7 @@ const isFieldFilled = (index) => {
 };
 
 const addRelated = () => {
-  form.value.related.push({ address: "", codeHash: "" });
+  form.value.related.push({ address: '', codeHash: '' });
 };
 
 const removeRelated = (index) => {
@@ -242,7 +257,7 @@ const sanitizeRelated = (
       address: string;
       codeHash: string;
     }[];
-  }>,
+  }>
 ) => {
   const addresses = form.value.related.map((related) => related.address);
   addresses.push(form.value.address);
@@ -253,33 +268,60 @@ const sanitizeRelated = (
 };
 
 const sendToContract = async (form) => {
-  if (!form.value.address || !form.value.link || !form.value.company) {
+  if (
+    !form.value.address ||
+    !form.value.link ||
+    !form.value.company ||
+    !form.value.name
+  ) {
     console.log(`missing fields to submit form to blockchain`);
     return;
   }
-  const related = form.value.related.map((r) => r.address).filter((r) => r);
-  console.log(related);
-  try {
-    const receipt = await writeContract({
+
+
+  const allRelatedArray = toRaw(form.value.related) //collect values 
+  const allRelatedAddresses = allRelatedArray.map((r) => r.address).filter((r) => r);
+  allRelatedAddresses.push(form.value.address)
+
+  //bundle transactions in a multicall for registering an audit entry for the current contract and related contracts
+  const allTx = [];
+  const allRelated = [{"address":form.value.address, "codeHash":form.value.codeHash},...allRelatedArray];
+  for (const r of allRelated) {
+    console.log(r);
+    //for each related entry
+    const tx = {
       ...registryContract,
-      functionName: "add",
+      functionName: 'add',
       chainId: SEPOLIA_CHAIN_ID,
-      //value: parseEther("0.1"),
-      args: [form.value.address, form.value.link, form.value.company, related],
-    });
+      args: [
+        r.address,
+        form.value.link,
+        form.value.company,
+        form.value.name,
+        r.codeHash,
+        allRelatedAddresses.filter((a:string) => a !== r.address), //remove curr address from related
+      ],
+    };
+    allTx.push(tx);
+  }
+
+  return
+    //TODO: this shit does not work 🥲
+  try {
+    const receipt = await multicall({contracts: allTx});
     ++store.pendingTransactions;
     waitForTransaction({ hash: receipt.hash }).then(
-      (_) => --store.pendingTransactions,
+      (_) => --store.pendingTransactions
     );
     console.log(`form submitted. tx hash: ${receipt.hash}`);
   } catch (error) {
-    console.log("error while submitting tx to contract");
+    console.log('error while submitting tx to contract');
     console.log(error);
     if (error.shortMessage) {
       errorMessage.value = error.shortMessage;
     } else {
       errorMessage.value =
-        "An unknown error happened while sending the transcation to the registry contract.";
+        'An unknown error happened while sending the transcation to the registry contract.';
     }
   }
 };
@@ -297,12 +339,11 @@ const submit = async () => {
 
   if (!sanitizeRelated(form)) {
     errorMessage.value =
-      "There are duplicate entries (codehash/address) in the related addresses, or it overlaps with the main contract codehash/address. Please check your input.";
+      'There are duplicate entries (codehash/address) in the related addresses, or it overlaps with the main contract codehash/address. Please check your input.';
     return;
   }
   //success
-  errorMessage.value = "";
-  console.log(form.value);
+  errorMessage.value = '';
   sendToContract(form);
 };
 </script>
