@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from "vue-router";
 import WalletConnectBtn from "@/components/WalletConnectBtn.vue";
+import PendingTransaction from "@/components/PendingTransaction.vue"
 import "./style.css";
 </script>
 
@@ -29,6 +30,7 @@ import "./style.css";
               Submit an audit
             </h1></RouterLink
           >
+          <PendingTransaction></PendingTransaction>
           <WalletConnectBtn></WalletConnectBtn>
         </div>
       </nav>
