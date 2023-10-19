@@ -85,10 +85,11 @@ contract AuditRegistry {
         }
         require(code != EMPTY_HASH && code != ZERO_HASH, "No code at target address");
 
+        //TODO: Eventually, we should maybe add a timestamp/date field for an audit.
         Artifact memory a = Artifact({
             owner: msg.sender,
             codeHash: code,
-            chainid: block.chainid,
+            chainid: block.chainid, //TODO: we should be able to register audits for different chain IDs
             link: reportLink,
             name: name,
             company: company,
