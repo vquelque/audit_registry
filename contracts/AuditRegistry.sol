@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: CC0-1.0
 pragma solidity ^0.8.20;
 
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+
 struct Artifact {
     address owner;
     bytes32 codeHash;
@@ -83,7 +85,10 @@ contract AuditRegistry {
         if (code == ZERO_HASH) {
             code = getCodeHash(target);
         }
-        require(code != EMPTY_HASH && code != ZERO_HASH, "No code at target address");
+        require(
+            code != EMPTY_HASH && code != ZERO_HASH,
+            "No code at target address"
+        );
 
         //TODO: Eventually, we should maybe add a timestamp/date field for an audit.
         Artifact memory a = Artifact({
@@ -112,5 +117,19 @@ contract AuditRegistry {
         artifactList.pop();
 
         emit Removed(msg.sender, target, a.codeHash);
+    }
+
+    function multicall(
+        bytes[] calldata data
+    ) external returns (bytes[] memory results) {
+        results = new bytes[](data.length);
+        for (uint256 i; i < data.length; ) {
+            results[i] = Address.functionDelegateCall(address(this), data[i]);
+
+            unchecked {
+                i += 1;
+            }
+        }
+        return results;
     }
 }
