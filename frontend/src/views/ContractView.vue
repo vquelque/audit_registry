@@ -112,8 +112,8 @@
             <p class="mt-1 max-w-2xl text-sm text-gray-500">
               Contract CodeHash: {{ selectedAudit.codeHash }}
             </p>
-            <div class="mt-1 max-w-2xl text-sm text-gray-500">
-              <p>Associated Addresses:</p>
+            <div class="mt-1 max-w-2xl text-sm text-gray-500" v-if="selectedAudit.associatedAddresses.length">
+              <p>Related Addresses:</p>
 
               <ul class="list-disc list-inside">
                 <li
@@ -121,7 +121,7 @@
                   :key="address"
                   class="hover:text-indigo-600 cursor-pointer"
                 >
-                  {{ address }}
+                <router-link :to="{ name: 'contract', params: { address: address }}">{{ address }}</router-link>
                 </li>
               </ul>
             </div>

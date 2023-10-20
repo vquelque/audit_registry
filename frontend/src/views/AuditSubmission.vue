@@ -255,14 +255,7 @@ const removeRelated = (index) => {
   form.value.related.splice(index, 1);
 };
 
-const resetForm = (form: Ref) =>
-  Object.keys(form.value).forEach((key) => {
-    if (Array.isArray(form.value[key])) {
-      form.value[key] = [...initialFormState[key]];
-    } else {
-      form.value[key] = initialFormState[key];
-    }
-  });
+const resetForm = (form: Ref) => form.value = initialFormState;
 
 const sanitizeRelated = (
   form: Ref<{
@@ -353,6 +346,7 @@ const sendToContract = async (form) => {
     );
     successMessage.value = `Your audit has been submitted on chain! Here is the tx hash ${txHash}`
     console.log(`form submitted. tx hash: ${txHash}`);
+    resetForm(form);
   } catch (error) {
     console.log('error while submitting tx to contract');
     console.log(error);
@@ -384,7 +378,5 @@ const submit = async () => {
   //success
   errorMessage.value = '';
   sendToContract(form);
-  resetForm(form);
-
 };
 </script>
