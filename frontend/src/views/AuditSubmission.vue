@@ -34,9 +34,8 @@
               id="codeHash"
               v-model="form.codeHash"
               type="text"
-              required
               pattern="^0x[a-fA-F0-9]{64}$"
-              title="Code hash must start with '0x' and be 66 characters long"
+              title="Code hash must start with '0x' and be 66 characters long. If not provided, we'll fetch the codehash from the chain."
             />
           </div>
           <div class="mb-4">
@@ -144,9 +143,8 @@
                     :name="'codeHash' + index"
                     v-model="related.codeHash"
                     type="text"
-                    :required="isFieldFilled(index)"
                     pattern="^0x[a-fA-F0-9]{64}$"
-                    title="Code hash must start with '0x' and be 66 characters long"
+                    title="Code hash must start with '0x' and be 66 characters long. If not provided, we'll fetch the codehash from the chain."
                   />
                 </div>
 
@@ -186,6 +184,14 @@
               <strong class="font-bold">Wait! </strong>
               <span class="block sm:inline">{{ errorMessage }}</span>
             </div>
+            <div
+              class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded"
+              role="alert"
+              v-if="successMessage"
+            >
+              <strong class="font-bold">Alrighty! </strong>
+              <span class="block sm:inline">{{ successMessage }}</span>
+            </div>
           </div>
         </form>
       </div>
@@ -208,8 +214,8 @@ import {
 import ConnectWalletPopup from '@/components/ConnectWalletPopup.vue';
 import { hasDuplicateInArray } from '@/utils/utils';
 import { REGISTRY_ABI } from '@/abi/AuditRegistry';
-import { waitForTransaction, multicall } from '@wagmi/core';
-import { parseEther } from 'viem';
+import { waitForTransaction, getWalletClient, sepolia } from '@wagmi/core';
+import { encodeFunctionData } from 'viem';
 
 const registryContract = {
   address: REGISTRY_ADDRESS,
@@ -218,12 +224,13 @@ const registryContract = {
 
 const showWalletPopup = ref(false);
 const errorMessage = ref('');
+const successMessage = ref('');
 
 const closeWalletPopup = (e) => {
   showWalletPopup.value = false;
 };
 
-const form = ref({
+const initialFormState = {
   address: '',
   codeHash: '',
   chainid: '',
@@ -231,7 +238,9 @@ const form = ref({
   company: '',
   name: '',
   related: [{ address: '', codeHash: '' }],
-});
+};
+
+const form = ref({ ...initialFormState });
 
 const isFieldFilled = (index) => {
   let related = form.value.related[index];
@@ -246,6 +255,15 @@ const removeRelated = (index) => {
   form.value.related.splice(index, 1);
 };
 
+const resetForm = (form: Ref) =>
+  Object.keys(form.value).forEach((key) => {
+    if (Array.isArray(form.value[key])) {
+      form.value[key] = [...initialFormState[key]];
+    } else {
+      form.value[key] = initialFormState[key];
+    }
+  });
+
 const sanitizeRelated = (
   form: Ref<{
     address: string;
@@ -259,9 +277,9 @@ const sanitizeRelated = (
     }[];
   }>
 ) => {
-  const addresses = form.value.related.map((related) => related.address);
+  const addresses = form.value.related.map((related) => related.address).filter(r => r);
   addresses.push(form.value.address);
-  const codeHashes = form.value.related.map((related) => related.codeHash);
+  const codeHashes = form.value.related.map((related) => related.codeHash).filter(c => c);
   codeHashes.push(form.value.codeHash);
 
   return !hasDuplicateInArray(addresses) && !hasDuplicateInArray(codeHashes);
@@ -278,42 +296,63 @@ const sendToContract = async (form) => {
     return;
   }
 
-
-  const allRelatedArray = toRaw(form.value.related) //collect values 
-  const allRelatedAddresses = allRelatedArray.map((r) => r.address).filter((r) => r);
-  allRelatedAddresses.push(form.value.address)
+  const allRelatedArray = toRaw(form.value.related).filter(
+    (r: any) => r.address
+  ); //collect values
+  const allRelatedAddresses = allRelatedArray.map((r) => r.address);
+  allRelatedAddresses.push(form.value.address);
 
   //bundle transactions in a multicall for registering an audit entry for the current contract and related contracts
   const allTx = [];
-  const allRelated = [{"address":form.value.address, "codeHash":form.value.codeHash},...allRelatedArray];
+  const allRelated = [
+    { address: form.value.address, codeHash: form.value.codeHash },
+    ...allRelatedArray,
+  ];
   for (const r of allRelated) {
-    console.log(r);
     //for each related entry
+    const codeHash = r.codeHash !== "" ? r.codeHash : "0x0000000000000000000000000000000000000000000000000000000000000000"
     const tx = {
       ...registryContract,
       functionName: 'add',
-      chainId: SEPOLIA_CHAIN_ID,
       args: [
         r.address,
         form.value.link,
         form.value.company,
         form.value.name,
-        r.codeHash,
-        allRelatedAddresses.filter((a:string) => a !== r.address), //remove curr address from related
+        codeHash,
+        allRelatedAddresses.filter((a: string) => a !== r.address), //remove curr address from related
       ],
     };
     allTx.push(tx);
   }
 
-  return
-    //TODO: this shit does not work 🥲
+  const allEncodedTx = allTx.map((tx) => encodeFunctionData(tx));
+
+  const walletClient = await getWalletClient({ chainId: SEPOLIA_CHAIN_ID });
+  if (!walletClient) {
+    console.log('No connected web3 wallet');
+    return;
+  }
+
+  //Simulating a multicall doesn't work for some reason.
+  //So we do not simulate to check for errors.
+  //Wagmi do not enable to disable simulation for "writeContract"
+  //So, instead we just rely on viem simulation
+
   try {
-    const receipt = await multicall({contracts: allTx});
+    const tx = {
+      ...registryContract,
+      functionName: 'multicall',
+      chain: sepolia,
+      args: [allEncodedTx],
+    };
+    const txHash = await walletClient.writeContract(tx);
     ++store.pendingTransactions;
-    waitForTransaction({ hash: receipt.hash }).then(
+    waitForTransaction({ hash: txHash }).then(
       (_) => --store.pendingTransactions
     );
-    console.log(`form submitted. tx hash: ${receipt.hash}`);
+    successMessage.value = `Your audit has been submitted on chain! Here is the tx hash ${txHash}`
+    console.log(`form submitted. tx hash: ${txHash}`);
   } catch (error) {
     console.log('error while submitting tx to contract');
     console.log(error);
@@ -321,7 +360,7 @@ const sendToContract = async (form) => {
       errorMessage.value = error.shortMessage;
     } else {
       errorMessage.value =
-        'An unknown error happened while sending the transcation to the registry contract.';
+        'An unknown error happened while sending the transaction to the registry contract.';
     }
   }
 };
@@ -345,5 +384,7 @@ const submit = async () => {
   //success
   errorMessage.value = '';
   sendToContract(form);
+  resetForm(form);
+
 };
 </script>

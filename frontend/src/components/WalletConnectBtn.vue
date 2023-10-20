@@ -8,18 +8,20 @@ import {
   switchNetwork,
   watchAccount,
   watchNetwork,
-  sepolia,
+  sepolia
 } from "@wagmi/core";
 import { infuraProvider } from "@wagmi/core/providers/infura";
 import { publicProvider } from "@wagmi/core/providers/public";
-import { store } from "@/store";
+import { store } from "@/store"
 
 const injectedConnector = new InjectedConnector();
 
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   [sepolia],
-  [infuraProvider({ apiKey: INFURA_KEY }), publicProvider()],
+  [infuraProvider({apiKey: INFURA_KEY}), publicProvider()]
 );
+
+
 
 const config = createConfig({
   autoConnect: true,
@@ -55,8 +57,8 @@ watchAccount((account) => {
 });
 
 watchNetwork((network) => {
-  store.chainId = network.chain.id;
-});
+  store.chainId = network.chain.id
+})
 </script>
 
 <template>

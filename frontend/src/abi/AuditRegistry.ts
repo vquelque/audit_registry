@@ -1,6 +1,12 @@
 export const REGISTRY_ABI = [
   { inputs: [], stateMutability: 'nonpayable', type: 'constructor' },
   {
+    inputs: [{ internalType: 'address', name: 'target', type: 'address' }],
+    name: 'AddressEmptyCode',
+    type: 'error',
+  },
+  { inputs: [], name: 'FailedInnerCall', type: 'error' },
+  {
     anonymous: false,
     inputs: [
       {
@@ -98,6 +104,13 @@ export const REGISTRY_ABI = [
     name: 'getCodeHash',
     outputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
     stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'bytes[]', name: 'data', type: 'bytes[]' }],
+    name: 'multicall',
+    outputs: [{ internalType: 'bytes[]', name: 'results', type: 'bytes[]' }],
+    stateMutability: 'nonpayable',
     type: 'function',
   },
   {
