@@ -213,15 +213,15 @@ import { ref, Ref, toRaw } from "vue";
 import { store } from "@/store";
 import {
   SEPOLIA_CHAIN_ID,
-  SCROLL_CHAIN_ID,
   SUPPORTED_NETWORKS,
+  SCROLL_SEPOLIA_CHAIN_ID,
 } from "@/constants";
 import ConnectWalletPopup from "@/components/ConnectWalletPopup.vue";
 import { hasDuplicateInArray } from "@/utils/utils";
 import { REGISTRY_ABI } from "@/abi/AuditRegistry";
 import { waitForTransaction, getWalletClient } from "@wagmi/core";
 import { encodeFunctionData } from "viem";
-import { sepolia, scrollTestnet } from "viem/chains";
+import { sepolia, scrollSepolia } from "viem/chains";
 
 const registryContract = {
   abi: REGISTRY_ABI,
@@ -291,6 +291,8 @@ const getChainForID = (chainId: number) => {
   switch (chainId) {
     case SEPOLIA_CHAIN_ID:
       return sepolia;
+    case SCROLL_SEPOLIA_CHAIN_ID:
+      return scrollSepolia;
   }
 };
 
@@ -362,8 +364,6 @@ const sendToContract = async (form) => {
   //So we do not simulate to check for errors.
   //Wagmi do not enable to disable simulation for "writeContract"
   //So, instead we just rely on viem simulation
-
-  console.log(getChainForID(selectedChainId));
 
   try {
     const tx = {

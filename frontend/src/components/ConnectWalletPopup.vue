@@ -32,7 +32,7 @@
               </h3>
               <div class="mt-2">
                 <p class="text-sm text-gray-500">
-                  Please connect your web3 wallet to the SEPOLIA network before
+                  Please connect your web3 wallet to a supported network before
                   submitting the form.
                 </p>
               </div>

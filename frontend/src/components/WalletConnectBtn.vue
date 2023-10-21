@@ -51,9 +51,6 @@ const connectWallet = async () => {
     });
     store.address = account;
     console.log(`Wallet ${account} connected`);
-    await switchNetwork({
-      chainId: SEPOLIA_CHAIN_ID,
-    });
   } catch (e) {
     console.log(e);
   }

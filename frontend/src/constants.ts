@@ -1,5 +1,5 @@
 export const SEPOLIA_CHAIN_ID = 11155111;
-export const SCROLL_SEPOLIA_CHAIN_ID = 534353;
+export const SCROLL_SEPOLIA_CHAIN_ID = 534351;
 export const SUPPORTED_NETWORKS = [
   {
     name: "Sepolia",
