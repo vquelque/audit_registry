@@ -57,7 +57,7 @@ watchAccount((account) => {
 });
 
 watchNetwork((network) => {
-  store.chainId = network.chain.id
+  store.chainId = network.chain?.id
 })
 </script>
 

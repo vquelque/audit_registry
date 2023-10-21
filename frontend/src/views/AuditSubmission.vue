@@ -73,17 +73,18 @@
               class="block text-gray-700 text-sm font-bold mb-2"
               for="chainid"
             >
-              Chain ID
+              Network
             </label>
-            <input
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            <select
+              class="shadow border appearance-none rounded w-full py-2 px-3 pr-8 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-white"
               id="chainid"
               v-model="form.chainid"
-              type="number"
               required
-              min="1"
-              title="Chain ID must be a stricly positive number"
-            />
+            >
+              <option v-for="chain in SUPPORTED_NETWORKS" :key="chain.id" :value="chain.id">
+                {{ chain.name }}
+              </option>
+            </select>
           </div>
           <div class="mb-4">
             <label
@@ -206,19 +207,15 @@
 <script setup lang="ts">
 import { ref, Ref, toRaw } from 'vue';
 import { store } from '@/store';
-import {
-  REGISTRY_ADDRESS,
-  SEPOLIA_CHAIN_ID,
-  SUPPORTED_NETWORKS,
-} from '@/constants';
+import { SEPOLIA_CHAIN_ID, SCROLL_CHAIN_ID, SUPPORTED_NETWORKS } from '@/constants';
 import ConnectWalletPopup from '@/components/ConnectWalletPopup.vue';
 import { hasDuplicateInArray } from '@/utils/utils';
 import { REGISTRY_ABI } from '@/abi/AuditRegistry';
-import { waitForTransaction, getWalletClient, sepolia } from '@wagmi/core';
+import { waitForTransaction, getWalletClient } from '@wagmi/core';
 import { encodeFunctionData } from 'viem';
+import {sepolia, scrollTestnet} from 'viem/chains'
 
 const registryContract = {
-  address: REGISTRY_ADDRESS,
   abi: REGISTRY_ABI,
 } as const;
 
@@ -233,7 +230,7 @@ const closeWalletPopup = (e) => {
 const initialFormState = {
   address: '',
   codeHash: '',
-  chainid: '',
+  chainid: 11155111,
   link: '',
   company: '',
   name: '',
@@ -255,13 +252,13 @@ const removeRelated = (index) => {
   form.value.related.splice(index, 1);
 };
 
-const resetForm = (form: Ref) => form.value = initialFormState;
+const resetForm = (form: Ref) => (form.value = initialFormState);
 
 const sanitizeRelated = (
   form: Ref<{
     address: string;
     codeHash: string;
-    chainid: string;
+    chainid: number;
     link: string;
     company: string;
     related: {
@@ -270,22 +267,42 @@ const sanitizeRelated = (
     }[];
   }>
 ) => {
-  const addresses = form.value.related.map((related) => related.address).filter(r => r);
+  const addresses = form.value.related
+    .map((related) => related.address)
+    .filter((r) => r);
   addresses.push(form.value.address);
-  const codeHashes = form.value.related.map((related) => related.codeHash).filter(c => c);
+  const codeHashes = form.value.related
+    .map((related) => related.codeHash)
+    .filter((c) => c);
   codeHashes.push(form.value.codeHash);
 
   return !hasDuplicateInArray(addresses) && !hasDuplicateInArray(codeHashes);
 };
+
+const getChainForID = (chainId: number) => {
+    switch(chainId) {
+        case SEPOLIA_CHAIN_ID:
+            return sepolia
+    }
+}
 
 const sendToContract = async (form) => {
   if (
     !form.value.address ||
     !form.value.link ||
     !form.value.company ||
-    !form.value.name
+    !form.value.name ||
+    !form.value.chainid
   ) {
     console.log(`missing fields to submit form to blockchain`);
+    return;
+  }
+
+  const selectedChainId = form.value.chainid
+  const selectedNetwork = SUPPORTED_NETWORKS.find(n => n.id == selectedChainId)
+
+  if (!selectedNetwork) {
+    console.error(`Network with id ${selectedChainId} not supported`)
     return;
   }
 
@@ -303,9 +320,13 @@ const sendToContract = async (form) => {
   ];
   for (const r of allRelated) {
     //for each related entry
-    const codeHash = r.codeHash !== "" ? r.codeHash : "0x0000000000000000000000000000000000000000000000000000000000000000"
+    const codeHash =
+      r.codeHash !== ''
+        ? r.codeHash
+        : '0x0000000000000000000000000000000000000000000000000000000000000000';
     const tx = {
       ...registryContract,
+      address: selectedNetwork.registryAddress,
       functionName: 'add',
       args: [
         r.address,
@@ -321,7 +342,7 @@ const sendToContract = async (form) => {
 
   const allEncodedTx = allTx.map((tx) => encodeFunctionData(tx));
 
-  const walletClient = await getWalletClient({ chainId: SEPOLIA_CHAIN_ID });
+  const walletClient = await getWalletClient({ chainId: selectedChainId });
   if (!walletClient) {
     console.log('No connected web3 wallet');
     return;
@@ -332,11 +353,14 @@ const sendToContract = async (form) => {
   //Wagmi do not enable to disable simulation for "writeContract"
   //So, instead we just rely on viem simulation
 
+  console.log(getChainForID(selectedChainId))
+
   try {
     const tx = {
       ...registryContract,
+      address: selectedNetwork.registryAddress,
       functionName: 'multicall',
-      chain: sepolia,
+      chain: getChainForID(selectedChainId),
       args: [allEncodedTx],
     };
     const txHash = await walletClient.writeContract(tx);
@@ -344,7 +368,7 @@ const sendToContract = async (form) => {
     waitForTransaction({ hash: txHash }).then(
       (_) => --store.pendingTransactions
     );
-    successMessage.value = `Your audit has been submitted on chain! Here is the tx hash ${txHash}`
+    successMessage.value = `Your audit has been submitted on chain! Here is the tx hash ${txHash}`;
     console.log(`form submitted. tx hash: ${txHash}`);
     resetForm(form);
   } catch (error) {
@@ -364,7 +388,7 @@ const submit = async () => {
     showWalletPopup.value = true;
     return;
   }
-  if (SUPPORTED_NETWORKS.indexOf(store.chainId) < 0) {
+  if (!SUPPORTED_NETWORKS.some((n) => n.id == store.chainId)) {
     //network is not supported
     showWalletPopup.value = true;
     return;

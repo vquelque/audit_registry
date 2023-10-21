@@ -1,5 +1,10 @@
 <template>
   <div>
+    <div v-if="isLoading" class="flex justify-center items-center h-screen">
+      <div
+        class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-purple-500"
+      ></div>
+    </div>
     <div class="justify-center mx-auto mt-32 w-1/2">
       <div class="p-6 bg-white shadow-md rounded-lg">
         <h1 class="text-xl font-bold mb-2">
@@ -11,6 +16,16 @@
           <p class="font-mono inline text-gray-500 font-extralight text-sm">
             {{ codehash }}
           </p>
+          <br />on chain
+
+          <select
+            v-model="selectedChainId"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 py-2 p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 ml-2"
+          >
+            <option v-for="chain in chains" :key="chain.id" :value="chain.id">
+              {{ chain.name }}
+            </option>
+          </select>
         </h1>
         <div v-if="validAudit" class="flex items-center text-green-500">
           <svg
@@ -78,7 +93,7 @@
                   "
                   class="px-2 py-1 font-semibold leading-tight text-sm rounded-full"
                 >
-                  {{ audit.isValid ? "OK" : "NOK" }}
+                  {{ audit.isValid ? 'OK' : 'NOK' }}
                 </span>
               </div>
               <p class="mt-1 max-w-2xl text-sm text-gray-600">
@@ -112,7 +127,10 @@
             <p class="mt-1 max-w-2xl text-sm text-gray-500">
               Contract CodeHash: {{ selectedAudit.codeHash }}
             </p>
-            <div class="mt-1 max-w-2xl text-sm text-gray-500" v-if="selectedAudit.associatedAddresses.length">
+            <div
+              class="mt-1 max-w-2xl text-sm text-gray-500"
+              v-if="selectedAudit.associatedAddresses.length"
+            >
               <p>Related Addresses:</p>
 
               <ul class="list-disc list-inside">
@@ -121,7 +139,10 @@
                   :key="address"
                   class="hover:text-indigo-600 cursor-pointer"
                 >
-                <router-link :to="{ name: 'contract', params: { address: address }}">{{ address }}</router-link>
+                  <router-link
+                    :to="{ name: 'contract', params: { address: address } }"
+                    >{{ address }}</router-link
+                  >
                 </li>
               </ul>
             </div>
@@ -142,11 +163,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, Ref } from "vue";
-import { useRoute } from "vue-router";
-import { readContracts } from "@wagmi/core";
-import { REGISTRY_ADDRESS } from "@/constants";
-import { REGISTRY_ABI } from "@/abi/AuditRegistry";
+import { ref, onMounted, Ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { readContracts } from '@wagmi/core';
+import {
+  SUPPORTED_NETWORKS,
+} from '@/constants';
+import { REGISTRY_ABI } from '@/abi/AuditRegistry';
+import { isValidAddress } from '@/utils/utils';
 
 const route = useRoute();
 const selectedAudit = ref();
@@ -154,6 +178,10 @@ const contractAddress = ref();
 const codehash = ref();
 const audits = ref();
 const validAudit = ref();
+const isLoading = ref(true);
+
+const chains = SUPPORTED_NETWORKS;
+const selectedChainId = ref(11155111); // default value
 
 type Artifact = {
   owner: string;
@@ -175,24 +203,19 @@ interface AuditEntry {
   isValid: boolean;
 }
 
-const registryContract = {
-  address: REGISTRY_ADDRESS,
-  abi: REGISTRY_ABI,
-} as const;
-
 const setRef = (
   data: any,
   r: Ref<any>,
   processData?: (...args: any[]) => any,
   ...processDataArgs: any[]
 ) => {
-  if (data && data.status == "success") {
+  if (data && data.status == 'success') {
     r.value = processData
       ? processData(data.result, ...processDataArgs)
       : data.result;
   } else {
-    r.value = "";
-    console.log("Failed to fetch data from RPC");
+    r.value = '';
+    console.log('Failed to fetch data from RPC');
     if (data.error) {
       console.log(data.error);
     }
@@ -200,12 +223,12 @@ const setRef = (
 };
 
 const checkValidAudit = (audits: Artifact[], codehash: string) =>
-  audits.some((a) => a.codeHash == codehash);
+  audits ? audits.some((a) => a.codeHash == codehash) : false;
 
 const processAudits = (audits: Artifact[], codehash: string) => {
   return audits.map<AuditEntry>((a, idx) => ({
     id: idx,
-    name: "Audit",
+    name: 'Audit',
     link: a.link,
     company: a.company,
     date: new Date().toLocaleDateString(),
@@ -219,124 +242,55 @@ const fetchData = async () => {
   if (!contractAddress.value) {
     return;
   }
+  const registryContract = {
+    address: chains.find(n => n.id == selectedChainId.value)?.registryAddress,
+    abi: REGISTRY_ABI,
+    chainId: selectedChainId.value,
+  } as const;
+
   const data = await readContracts({
     contracts: [
       {
         ...registryContract,
-        functionName: "getCodeHash",
+        functionName: 'getCodeHash',
         args: [contractAddress.value],
       },
       {
         ...registryContract,
-        functionName: "getArtifacts",
+        functionName: 'getArtifacts',
         args: [contractAddress.value],
       },
     ],
   });
   setRef(data[0], codehash);
   setRef(data[1], audits, processAudits, codehash.value);
-  console.log(data[1]);
-
   validAudit.value = checkValidAudit(audits.value, codehash.value);
+  isLoading.value = false;
 };
 
+watch(
+  () => route.params,
+  async (newParams, oldParams) => {
+    if (newParams.address != oldParams.address) {
+      if (isValidAddress(newParams.address)) {
+        contractAddress.value = newParams.address;
+        fetchData();
+      }
+    }
+  }
+);
+
+watch(
+  selectedChainId,
+  async (newChainId, _) => {
+      if (chains.some(c => c.id === newChainId)) {
+        fetchData();
+      }
+  }
+);
+
 onMounted(() => {
-  console.log(route.params);
   contractAddress.value = route.params.address;
   fetchData();
 });
-
-const auditsDummy = [
-  // Replace this with your actual data
-  {
-    id: 1,
-    name: "Audit 1",
-    link: "https://example.com/audit-1",
-    company: "Company 1",
-    date: "2022-01-01",
-    contractHash: "0x123",
-    associatedAddresses: ["0x123", "0x456"],
-    isValid: true,
-  },
-  {
-    id: 2,
-    name: "Audit 2",
-    link: "https://example.com/audit-2",
-    company: "Company 2",
-    date: "2022-01-02",
-    contractHash: "0x123",
-    associatedAddresses: ["0x124", "0x455"],
-    isValid: false,
-  },
-  {
-    id: 1,
-    name: "Audit 3",
-    link: "https://example.com/audit-3",
-    company: "Company 3",
-    date: "2022-01-03",
-    contractHash: "0x125",
-    associatedAddresses: ["0x12", "0x456"],
-    isValid: true,
-  },
-  {
-    id: 1,
-    name: "Audit 3",
-    link: "https://example.com/audit-3",
-    company: "Company 3",
-    date: "2022-01-03",
-    contractHash: "0x125",
-    associatedAddresses: ["0x12", "0x456"],
-    isValid: true,
-  },
-  {
-    id: 1,
-    name: "Audit 3",
-    link: "https://example.com/audit-3",
-    company: "Company 3",
-    date: "2022-01-03",
-    contractHash: "0x125",
-    associatedAddresses: ["0x12", "0x456"],
-    isValid: true,
-  },
-  {
-    id: 1,
-    name: "Audit 3",
-    link: "https://example.com/audit-3",
-    company: "Company 3",
-    date: "2022-01-03",
-    contractHash: "0x125",
-    associatedAddresses: ["0x12", "0x456"],
-    isValid: true,
-  },
-  {
-    id: 1,
-    name: "Audit 3",
-    link: "https://example.com/audit-3",
-    company: "Company 3",
-    date: "2022-01-03",
-    contractHash: "0x125",
-    associatedAddresses: ["0x12", "0x456"],
-    isValid: true,
-  },
-  {
-    id: 1,
-    name: "Audit 3",
-    link: "https://example.com/audit-3",
-    company: "Company 3",
-    date: "2022-01-03",
-    contractHash: "0x125",
-    associatedAddresses: ["0x12", "0x456"],
-    isValid: true,
-  },
-  {
-    id: 1,
-    name: "Audit 3",
-    link: "https://example.com/audit-3",
-    company: "Company 3",
-    date: "2022-01-03",
-    contractHash: "0x125",
-    associatedAddresses: ["0x12", "0x456"],
-    isValid: true,
-  },
-];
 </script>

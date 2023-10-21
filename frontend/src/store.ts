@@ -3,6 +3,6 @@ import { reactive } from "vue";
 
 export const store = reactive({
   address: "",
-  chainId: 0,
+  chainId: undefined,
   pendingTransactions: 0,
 });
