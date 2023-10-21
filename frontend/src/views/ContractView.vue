@@ -93,7 +93,7 @@
                   "
                   class="px-2 py-1 font-semibold leading-tight text-sm rounded-full"
                 >
-                  {{ audit.isValid ? 'OK' : 'NOK' }}
+                  {{ audit.isValid ? "OK" : "NOK" }}
                 </span>
               </div>
               <p class="mt-1 max-w-2xl text-sm text-gray-600">
@@ -163,14 +163,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, Ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { readContracts } from '@wagmi/core';
-import {
-  SUPPORTED_NETWORKS,
-} from '@/constants';
-import { REGISTRY_ABI } from '@/abi/AuditRegistry';
-import { isValidAddress } from '@/utils/utils';
+import { ref, onMounted, Ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import { readContracts } from "@wagmi/core";
+import { SUPPORTED_NETWORKS } from "@/constants";
+import { REGISTRY_ABI } from "@/abi/AuditRegistry";
+import { isValidAddress } from "@/utils/utils";
 
 const route = useRoute();
 const selectedAudit = ref();
@@ -209,13 +207,13 @@ const setRef = (
   processData?: (...args: any[]) => any,
   ...processDataArgs: any[]
 ) => {
-  if (data && data.status == 'success') {
+  if (data && data.status == "success") {
     r.value = processData
       ? processData(data.result, ...processDataArgs)
       : data.result;
   } else {
-    r.value = '';
-    console.log('Failed to fetch data from RPC');
+    r.value = "";
+    console.log("Failed to fetch data from RPC");
     if (data.error) {
       console.log(data.error);
     }
@@ -228,7 +226,7 @@ const checkValidAudit = (audits: Artifact[], codehash: string) =>
 const processAudits = (audits: Artifact[], codehash: string) => {
   return audits.map<AuditEntry>((a, idx) => ({
     id: idx,
-    name: 'Audit',
+    name: "Audit",
     link: a.link,
     company: a.company,
     date: new Date().toLocaleDateString(),
@@ -242,22 +240,22 @@ const fetchData = async () => {
   if (!contractAddress.value) {
     return;
   }
+
   const registryContract = {
-    address: chains.find(n => n.id == selectedChainId.value)?.registryAddress,
+    address: chains.find((n) => n.id == selectedChainId.value)?.registryAddress,
     abi: REGISTRY_ABI,
     chainId: selectedChainId.value,
   } as const;
-
   const data = await readContracts({
     contracts: [
       {
         ...registryContract,
-        functionName: 'getCodeHash',
+        functionName: "getCodeHash",
         args: [contractAddress.value],
       },
       {
         ...registryContract,
-        functionName: 'getArtifacts',
+        functionName: "getArtifacts",
         args: [contractAddress.value],
       },
     ],
@@ -277,17 +275,14 @@ watch(
         fetchData();
       }
     }
-  }
+  },
 );
 
-watch(
-  selectedChainId,
-  async (newChainId, _) => {
-      if (chains.some(c => c.id === newChainId)) {
-        fetchData();
-      }
+watch(selectedChainId, async (newChainId, _) => {
+  if (chains.some((c) => c.id === newChainId)) {
+    fetchData();
   }
-);
+});
 
 onMounted(() => {
   contractAddress.value = route.params.address;

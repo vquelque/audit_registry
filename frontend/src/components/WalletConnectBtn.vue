@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { SEPOLIA_CHAIN_ID, INFURA_KEY } from "@/constants";
+import {
+  SEPOLIA_CHAIN_ID,
+  INFURA_KEY,
+  SCROLL_SEPOLIA_CHAIN_ID,
+} from "@/constants";
 import { InjectedConnector } from "@wagmi/core/connectors/injected";
 import {
   configureChains,
@@ -8,20 +12,29 @@ import {
   switchNetwork,
   watchAccount,
   watchNetwork,
-  sepolia
 } from "@wagmi/core";
+import { sepolia, scrollSepolia } from "@wagmi/core/chains";
 import { infuraProvider } from "@wagmi/core/providers/infura";
 import { publicProvider } from "@wagmi/core/providers/public";
-import { store } from "@/store"
-
-const injectedConnector = new InjectedConnector();
+import { jsonRpcProvider } from "@wagmi/core/providers/jsonRpc";
+import { store } from "@/store";
 
 const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [sepolia],
-  [infuraProvider({apiKey: INFURA_KEY}), publicProvider()]
+  [scrollSepolia, sepolia],
+  [
+    infuraProvider({ apiKey: INFURA_KEY }),
+    publicProvider(),
+    jsonRpcProvider({
+      rpc: (chain) => {
+        if (chain.id === SCROLL_SEPOLIA_CHAIN_ID)
+          return { http: "https://sepolia-rpc.scroll.io" };
+        return null;
+      },
+    }),
+  ],
 );
 
-
+const injectedConnector = new InjectedConnector({ chains });
 
 const config = createConfig({
   autoConnect: true,
@@ -57,8 +70,8 @@ watchAccount((account) => {
 });
 
 watchNetwork((network) => {
-  store.chainId = network.chain?.id
-})
+  store.chainId = network.chain?.id;
+});
 </script>
 
 <template>

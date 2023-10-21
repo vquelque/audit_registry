@@ -81,7 +81,11 @@
               v-model="form.chainid"
               required
             >
-              <option v-for="chain in SUPPORTED_NETWORKS" :key="chain.id" :value="chain.id">
+              <option
+                v-for="chain in SUPPORTED_NETWORKS"
+                :key="chain.id"
+                :value="chain.id"
+              >
                 {{ chain.name }}
               </option>
             </select>
@@ -205,36 +209,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref, toRaw } from 'vue';
-import { store } from '@/store';
-import { SEPOLIA_CHAIN_ID, SCROLL_CHAIN_ID, SUPPORTED_NETWORKS } from '@/constants';
-import ConnectWalletPopup from '@/components/ConnectWalletPopup.vue';
-import { hasDuplicateInArray } from '@/utils/utils';
-import { REGISTRY_ABI } from '@/abi/AuditRegistry';
-import { waitForTransaction, getWalletClient } from '@wagmi/core';
-import { encodeFunctionData } from 'viem';
-import {sepolia, scrollTestnet} from 'viem/chains'
+import { ref, Ref, toRaw } from "vue";
+import { store } from "@/store";
+import {
+  SEPOLIA_CHAIN_ID,
+  SCROLL_CHAIN_ID,
+  SUPPORTED_NETWORKS,
+} from "@/constants";
+import ConnectWalletPopup from "@/components/ConnectWalletPopup.vue";
+import { hasDuplicateInArray } from "@/utils/utils";
+import { REGISTRY_ABI } from "@/abi/AuditRegistry";
+import { waitForTransaction, getWalletClient } from "@wagmi/core";
+import { encodeFunctionData } from "viem";
+import { sepolia, scrollTestnet } from "viem/chains";
 
 const registryContract = {
   abi: REGISTRY_ABI,
 } as const;
 
 const showWalletPopup = ref(false);
-const errorMessage = ref('');
-const successMessage = ref('');
+const errorMessage = ref("");
+const successMessage = ref("");
 
 const closeWalletPopup = (e) => {
   showWalletPopup.value = false;
 };
 
 const initialFormState = {
-  address: '',
-  codeHash: '',
+  address: "",
+  codeHash: "",
   chainid: 11155111,
-  link: '',
-  company: '',
-  name: '',
-  related: [{ address: '', codeHash: '' }],
+  link: "",
+  company: "",
+  name: "",
+  related: [{ address: "", codeHash: "" }],
 };
 
 const form = ref({ ...initialFormState });
@@ -245,7 +253,7 @@ const isFieldFilled = (index) => {
 };
 
 const addRelated = () => {
-  form.value.related.push({ address: '', codeHash: '' });
+  form.value.related.push({ address: "", codeHash: "" });
 };
 
 const removeRelated = (index) => {
@@ -265,7 +273,7 @@ const sanitizeRelated = (
       address: string;
       codeHash: string;
     }[];
-  }>
+  }>,
 ) => {
   const addresses = form.value.related
     .map((related) => related.address)
@@ -280,11 +288,11 @@ const sanitizeRelated = (
 };
 
 const getChainForID = (chainId: number) => {
-    switch(chainId) {
-        case SEPOLIA_CHAIN_ID:
-            return sepolia
-    }
-}
+  switch (chainId) {
+    case SEPOLIA_CHAIN_ID:
+      return sepolia;
+  }
+};
 
 const sendToContract = async (form) => {
   if (
@@ -298,16 +306,18 @@ const sendToContract = async (form) => {
     return;
   }
 
-  const selectedChainId = form.value.chainid
-  const selectedNetwork = SUPPORTED_NETWORKS.find(n => n.id == selectedChainId)
+  const selectedChainId = form.value.chainid;
+  const selectedNetwork = SUPPORTED_NETWORKS.find(
+    (n) => n.id == selectedChainId,
+  );
 
   if (!selectedNetwork) {
-    console.error(`Network with id ${selectedChainId} not supported`)
+    console.error(`Network with id ${selectedChainId} not supported`);
     return;
   }
 
   const allRelatedArray = toRaw(form.value.related).filter(
-    (r: any) => r.address
+    (r: any) => r.address,
   ); //collect values
   const allRelatedAddresses = allRelatedArray.map((r) => r.address);
   allRelatedAddresses.push(form.value.address);
@@ -321,13 +331,13 @@ const sendToContract = async (form) => {
   for (const r of allRelated) {
     //for each related entry
     const codeHash =
-      r.codeHash !== ''
+      r.codeHash !== ""
         ? r.codeHash
-        : '0x0000000000000000000000000000000000000000000000000000000000000000';
+        : "0x0000000000000000000000000000000000000000000000000000000000000000";
     const tx = {
       ...registryContract,
       address: selectedNetwork.registryAddress,
-      functionName: 'add',
+      functionName: "add",
       args: [
         r.address,
         form.value.link,
@@ -344,7 +354,7 @@ const sendToContract = async (form) => {
 
   const walletClient = await getWalletClient({ chainId: selectedChainId });
   if (!walletClient) {
-    console.log('No connected web3 wallet');
+    console.log("No connected web3 wallet");
     return;
   }
 
@@ -353,32 +363,32 @@ const sendToContract = async (form) => {
   //Wagmi do not enable to disable simulation for "writeContract"
   //So, instead we just rely on viem simulation
 
-  console.log(getChainForID(selectedChainId))
+  console.log(getChainForID(selectedChainId));
 
   try {
     const tx = {
       ...registryContract,
       address: selectedNetwork.registryAddress,
-      functionName: 'multicall',
+      functionName: "multicall",
       chain: getChainForID(selectedChainId),
       args: [allEncodedTx],
     };
     const txHash = await walletClient.writeContract(tx);
     ++store.pendingTransactions;
     waitForTransaction({ hash: txHash }).then(
-      (_) => --store.pendingTransactions
+      (_) => --store.pendingTransactions,
     );
     successMessage.value = `Your audit has been submitted on chain! Here is the tx hash ${txHash}`;
     console.log(`form submitted. tx hash: ${txHash}`);
     resetForm(form);
   } catch (error) {
-    console.log('error while submitting tx to contract');
+    console.log("error while submitting tx to contract");
     console.log(error);
     if (error.shortMessage) {
       errorMessage.value = error.shortMessage;
     } else {
       errorMessage.value =
-        'An unknown error happened while sending the transaction to the registry contract.';
+        "An unknown error happened while sending the transaction to the registry contract.";
     }
   }
 };
@@ -396,11 +406,11 @@ const submit = async () => {
 
   if (!sanitizeRelated(form)) {
     errorMessage.value =
-      'There are duplicate entries (codehash/address) in the related addresses, or it overlaps with the main contract codehash/address. Please check your input.';
+      "There are duplicate entries (codehash/address) in the related addresses, or it overlaps with the main contract codehash/address. Please check your input.";
     return;
   }
   //success
-  errorMessage.value = '';
+  errorMessage.value = "";
   sendToContract(form);
 };
 </script>
