@@ -186,6 +186,7 @@ type Artifact = {
   codeHash: string;
   chainid: number;
   link: string;
+  name: string,
   company: string;
   related: string[];
 };
@@ -226,7 +227,7 @@ const checkValidAudit = (audits: Artifact[], codehash: string) =>
 const processAudits = (audits: Artifact[], codehash: string) => {
   return audits.map<AuditEntry>((a, idx) => ({
     id: idx,
-    name: "Audit",
+    name: a.name,
     link: a.link,
     company: a.company,
     date: new Date().toLocaleDateString(),
