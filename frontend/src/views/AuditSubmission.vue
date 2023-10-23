@@ -209,7 +209,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref, toRaw } from "vue";
+import { ref, type Ref, toRaw } from "vue";
 import { store } from "@/store";
 import {
   SEPOLIA_CHAIN_ID,
@@ -220,7 +220,7 @@ import ConnectWalletPopup from "@/components/ConnectWalletPopup.vue";
 import { hasDuplicateInArray } from "@/utils/utils";
 import { REGISTRY_ABI } from "@/abi/AuditRegistry";
 import { waitForTransaction, getWalletClient } from "@wagmi/core";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData, type Address } from "viem";
 import { sepolia, scrollSepolia } from "viem/chains";
 
 const registryContract = {
@@ -231,7 +231,7 @@ const showWalletPopup = ref(false);
 const errorMessage = ref("");
 const successMessage = ref("");
 
-const closeWalletPopup = (e) => {
+const closeWalletPopup = (e: Event) => {
   showWalletPopup.value = false;
 };
 
@@ -247,7 +247,7 @@ const initialFormState = {
 
 const form = ref({ ...initialFormState });
 
-const isFieldFilled = (index) => {
+const isFieldFilled = (index: number) => {
   let related = form.value.related[index];
   return !!(related && (related.address || related.codeHash));
 };
@@ -256,7 +256,7 @@ const addRelated = () => {
   form.value.related.push({ address: "", codeHash: "" });
 };
 
-const removeRelated = (index) => {
+const removeRelated = (index: number) => {
   form.value.related.splice(index, 1);
 };
 
@@ -296,7 +296,7 @@ const getChainForID = (chainId: number) => {
   }
 };
 
-const sendToContract = async (form) => {
+const sendToContract = async (form: any) => {
   if (
     !form.value.address ||
     !form.value.link ||
@@ -321,7 +321,9 @@ const sendToContract = async (form) => {
   const allRelatedArray = toRaw(form.value.related).filter(
     (r: any) => r.address,
   ); //collect values
-  const allRelatedAddresses = allRelatedArray.map((r) => r.address);
+  const allRelatedAddresses = allRelatedArray.map(
+    (r: { address: string; codehash: string }) => r.address,
+  );
   allRelatedAddresses.push(form.value.address);
 
   //bundle transactions in a multicall for registering an audit entry for the current contract and related contracts
@@ -352,7 +354,7 @@ const sendToContract = async (form) => {
     allTx.push(tx);
   }
 
-  const allEncodedTx = allTx.map((tx) => encodeFunctionData(tx));
+  const allEncodedTx = allTx.map((tx: any) => encodeFunctionData(tx));
 
   const walletClient = await getWalletClient({ chainId: selectedChainId });
   if (!walletClient) {
@@ -368,11 +370,11 @@ const sendToContract = async (form) => {
   try {
     const tx = {
       ...registryContract,
-      address: selectedNetwork.registryAddress,
+      address: selectedNetwork.registryAddress as Address,
       functionName: "multicall",
       chain: getChainForID(selectedChainId),
       args: [allEncodedTx],
-    };
+    } as const;
     const txHash = await walletClient.writeContract(tx);
     ++store.pendingTransactions;
     waitForTransaction({ hash: txHash }).then(
@@ -381,7 +383,7 @@ const sendToContract = async (form) => {
     successMessage.value = `Your audit has been submitted on chain! Here is the tx hash ${txHash}`;
     console.log(`form submitted. tx hash: ${txHash}`);
     resetForm(form);
-  } catch (error) {
+  } catch (error: any) {
     console.log("error while submitting tx to contract");
     console.log(error);
     if (error.shortMessage) {

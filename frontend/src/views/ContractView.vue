@@ -163,9 +163,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, Ref, watch } from "vue";
+import { ref, onMounted, type Ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { readContracts } from "@wagmi/core";
+import { readContracts, type Address } from "@wagmi/core";
 import { SUPPORTED_NETWORKS } from "@/constants";
 import { REGISTRY_ABI } from "@/abi/AuditRegistry";
 import { isValidAddress } from "@/utils/utils";
@@ -186,7 +186,7 @@ type Artifact = {
   codeHash: string;
   chainid: number;
   link: string;
-  name: string,
+  name: string;
   company: string;
   related: string[];
 };
@@ -196,8 +196,8 @@ interface AuditEntry {
   name: string;
   link: string;
   company: string;
-  date: Date;
-  contractHash: string;
+  date: string;
+  codeHash: string;
   associatedAddresses: Array<string>;
   isValid: boolean;
 }
@@ -242,22 +242,30 @@ const fetchData = async () => {
     return;
   }
 
+  const address = chains.find((n) => n.id == selectedChainId.value)
+    ?.registryAddress;
+
+  if (!address) {
+    throw new Error("Chain not supported.");
+  }
+
   const registryContract = {
-    address: chains.find((n) => n.id == selectedChainId.value)?.registryAddress,
+    address: address as Address,
     abi: REGISTRY_ABI,
     chainId: selectedChainId.value,
   } as const;
+
   const data = await readContracts({
     contracts: [
       {
         ...registryContract,
         functionName: "getCodeHash",
-        args: [contractAddress.value],
+        args: [contractAddress.value as Address],
       },
       {
         ...registryContract,
         functionName: "getArtifacts",
-        args: [contractAddress.value],
+        args: [contractAddress.value as Address],
       },
     ],
   });
@@ -271,7 +279,7 @@ watch(
   () => route.params,
   async (newParams, oldParams) => {
     if (newParams.address != oldParams.address) {
-      if (isValidAddress(newParams.address)) {
+      if (isValidAddress(newParams.address as string)) {
         contractAddress.value = newParams.address;
         fetchData();
       }
