@@ -59,7 +59,7 @@ const connectWallet = async () => {
 watchAccount((account) => {
   if (account.isDisconnected == true && !account.isReconnecting) {
     console.log(`Account is disconnected`);
-    store.address = "";
+    store.address = undefined;
   }
   if (account.isConnected) {
     store.address = account.address;

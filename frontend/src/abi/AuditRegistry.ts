@@ -140,4 +140,4 @@ export const REGISTRY_ABI = [
     stateMutability: "nonpayable",
     type: "function",
   },
-];
+] as const;
